@@ -8,8 +8,13 @@ from django.contrib import messages
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
+import datetime
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 # Create your views here.
+@login_required(login_url='/login')
 def show_main(request):
     mood_entries = MoodEntry.objects.all()
 
@@ -17,7 +22,9 @@ def show_main(request):
         'name': 'Pak Bepe',
         'class': 'PBP D',
         'npm': '2306123456',
-        'mood_entries': mood_entries
+        'mood_entries': mood_entries,
+        'last_login': request.COOKIES['last_login'],
+
     }
 
     return render(request, "main.html", context)
@@ -51,7 +58,9 @@ def login_user(request):
       if form.is_valid():
             user = form.get_user()
             login(request, user)
-            return redirect('main:show_main')
+            response = HttpResponseRedirect(reverse("main:show_main"))
+            response.set_cookie('last_login', str(datetime.datetime.now()))
+            return response
 
    else:
       form = AuthenticationForm(request)
@@ -60,7 +69,9 @@ def login_user(request):
 
 def logout_user(request):
     logout(request)
-    return redirect('main:login')
+    response = HttpResponseRedirect(reverse('main:login'))
+    response.delete_cookie('last_login')
+    return response
 
 def show_xml(request):
     data = MoodEntry.objects.all()
